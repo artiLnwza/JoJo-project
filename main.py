@@ -18,8 +18,8 @@ except FileNotFoundError:
     sys.exit()
 
 
-initial_capital = float(input("เงินเริ่ม : "))
-num_trades = int(input("จำนวนออกไม้ : "))          
+initial_capital = float(input("money start : "))
+num_trades = int(input("num trades : "))          
 distance = 20.0            
 
 
@@ -105,16 +105,16 @@ log_df = pd.DataFrame(trade_log)
 print(log_df.head(num_trades).to_string(index=False)) 
 log_df.to_csv('trade_history.csv', index=False)
 
-print("สรุปผล")
-print(f"ทุนเริ่มต้น: {initial_capital:.2f} ")
-print(f"เงินทุนคงเหลือ: {current_capital:.2f} ")
-print(f"Win : {win_count} ไม้")
-print(f"Loss : {loss_count} ไม้")
+print("results")
+print(f"money start : {initial_capital:.2f} ")
+print(f"money final : {current_capital:.2f} ")
+print(f"Win : {win_count} ")
+print(f"Loss : {loss_count} ")
 
 total_executed_trades = win_count + loss_count
 if total_executed_trades > 0:
     win_rate = (win_count / total_executed_trades) * 100
-    print(f"Win Rate (อัตราชนะ): {win_rate:.2f}%")
+    print(f"Win Rate : {win_rate:.2f}%")
 
 
 plt.figure(figsize=(10, 6))
