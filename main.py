@@ -1,124 +1,123 @@
 import pandas as pd
 import random
 import sys
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
+ 
 
-file_name = 'XAU_USD Historical Data.csv' 
+file = 'XAU_USD Historical Data.csv' 
 
 try:
-    df = pd.read_csv(file_name)
-    df['Date'] = pd.to_datetime(df['Date'])
-    df = df.sort_values('Date').reset_index(drop=True)
-    cols_to_fix = ['Price', 'Open', 'High', 'Low']
-    for col in cols_to_fix:
-        df[col] = df[col].astype(str).str.replace(',', '').astype(float)
-    
+    df = pd.read_csv(file)
+    df['Date'] = pd.to_datetime(df['Date']) #แปลงวันที่
+    df = df.sort_values('Date').reset_index(drop=True) #เรียงวันที่ใหม่
+    fix = ['Price', 'Open', 'High', 'Low'] #เช้คหมด4ตัว
+    for err in fix:
+        df[err] = df[err].astype(str).str.replace(',', '').astype(float) #ลบ ,  ที่ตัวเลข แบบ5,400 เป้น 5400
+
 except FileNotFoundError:
-    
     sys.exit()
 
+moneyS = float(input("เงินเริ่ม : "))
+trades = int(input("จำนวนออกไม้ : "))          
+distance = 150.0    # RR 1:1       
 
-initial_capital = float(input("money start : "))
-num_trades = int(input("num trades : "))          
-distance = 20.0            
+moneyR = moneyS
+win = 0
+loss = 0
+dataRows = len(df)
+bob = [moneyS] #เก้บเงิน
+note = [] 
 
-
-
-current_capital = initial_capital
-win_count = 0
-loss_count = 0
-total_rows = len(df)
-equity_curve = [initial_capital] 
-
-
-trade_log = []
-
-
-for trade in range(num_trades):
-    if current_capital <= 0:
-        print(f" พอร์ตแตก {trade + 1}")
+for trade in range(trades):
+    if moneyR <= 0:
+        print("แตกกกหนึ่ง!!!")
+        print(" ")
         break
 
-    entry_index = random.randint(0, total_rows - 100)
-    entry_price = df['Price'].iloc[entry_index]
-    entry_date = df['Date'].iloc[entry_index].strftime('%Y-%m-%d') # เก็บวันที่เข้าเทรด
-    direction = random.choice(['Buy', 'Sell'])
-    spread = random.uniform(1.0, 3.0)
+    index = random.randint(0, dataRows - 100)# แอบมีปัญหา
+    price = df['Price'].iloc[index] # เก็บik8kเข้าเทรด
+    dayday = df['Date'].iloc[index].strftime('%d-%m-%Y') # เก็บวันที่เข้าเทรด
+    direction = random.choice(['Buy', 'Sell'])  # เลือกสุ่ม Buy/Sell การจากใช้ choice
+    spread = random.uniform(1.0, 3.0) # สุ่มค่าspread ตัวนี้ผมหาข้อมูลมาว่าตลอด5 ปีใช้ค่า 1-3 ดีที่สุด (ไม่นับการข่าว)
     
+    #คิดการเข้า
     if direction == 'Buy':
-        actual_entry = entry_price + spread 
-        tp_price = actual_entry + distance
-        sl_price = actual_entry - distance
-    else:
-        actual_entry = entry_price - spread  
-        tp_price = actual_entry - distance
-        sl_price = actual_entry + distance
-        
-    trade_result = "Loss" 
-    for i in range(entry_index + 1, total_rows):
-        high_price = df['High'].iloc[i]
-        low_price = df['Low'].iloc[i]
+        realOrder = price + spread # คิดค่า spread
+        tp = realOrder + distance #หา tp
+        sl = realOrder - distance #หา sl
+    else:#ถ้าไม่ใช่ buy ก็หาของ sell
+        realOrder = price - spread  
+        tp = realOrder - distance
+        sl = realOrder + distance
+            
+    #คิดแพ้ชนะ
+    result = "Loss" 
+    for i in range(index + 1, dataRows):
+        high = df['High'].iloc[i]
+        low = df['Low'].iloc[i]
         
         if direction == 'Buy':
-            if low_price <= sl_price:   
-                trade_result = "Loss"
+            if low <= sl:   
+                result = "Loss"
                 break
-            elif high_price >= tp_price: 
-                trade_result = "Win"
+            elif high >= tp: 
+                result = "Win"
                 break
+
         elif direction == 'Sell':
-            if high_price >= sl_price:   
-                trade_result = "Loss"
+            if high >= sl:   
+                result = "Loss"
                 break
-            elif low_price <= tp_price:  
-                trade_result = "Win"
+            elif low <= tp:  
+                result = "Win"
                 break
-                
-    if trade_result == "Win":
-        current_capital += distance
-        win_count += 1
-        profit_loss = distance
-    else:
-        current_capital -= distance
-        loss_count += 1
-        profit_loss = -distance
-        
-    equity_curve.append(current_capital)
+                    
+    if result == "Win":
     
-    # บันทึกข้อมูล
-    trade_log.append({
+        moneyR += distance # RR 1:1
+        win += 1
+        profit = distance
+        
+    else:
+        moneyR -= distance
+        loss += 1
+        profit = -distance
+        
+    bob.append(moneyR)
+    
+    #บันทึกข้อมูล
+    note.append({
         'Trade_No': trade + 1,
-        'Date': entry_date,
+        'Date': dayday,
         'Direction': direction,
-        'Market_Price': round(entry_price, 2),
+        'Market_Price': round(price, 2),
         'Spread': round(spread, 2),
-        'Actual_Entry': round(actual_entry, 2),
-        'TP': round(tp_price, 2),
-        'SL': round(sl_price, 2),
-        'Result': trade_result,
-        'P/L': profit_loss,
-        'Balance': round(current_capital, 2)
+        'Entry': round(realOrder, 2),
+        'TP': round(tp, 2),
+        'SL': round(sl, 2),
+        'Result': result,
+        'P/L': profit,
+        'Balance': round(moneyR, 2)
     })
 
 
-log_df = pd.DataFrame(trade_log)
-print(log_df.head(num_trades).to_string(index=False)) 
-log_df.to_csv('trade_history.csv', index=False)
+#จัดหน้าสวยๆ
+noteDF = pd.DataFrame(note)
+print(noteDF.head(trades).to_string(index=False)) 
+noteDF.to_csv('trade_history.csv', index=False)
 
-print("results")
-print(f"money start : {initial_capital:.2f} ")
-print(f"money final : {current_capital:.2f} ")
-print(f"Win : {win_count} ")
-print(f"Loss : {loss_count} ")
+print("\nสรุปผล")
+print(f"ทุนเริ่มต้น: {moneyS:.2f}")
+print(f"เงินทุนเหลือ: {moneyR:.2f} ")
+print(f"Win : {win} ไม้")
+print(f"Loss : {loss} ไม้")
 
-total_executed_trades = win_count + loss_count
-if total_executed_trades > 0:
-    win_rate = (win_count / total_executed_trades) * 100
-    print(f"Win Rate : {win_rate:.2f}%")
+totalTrades = win + loss
+winrate = 0.0
+if totalTrades > 0:#กันอาจารย์ เทรด 0 รอบ
+    winrate = (win / totalTrades) * 100
+    print(f"Win Rate (อัตราชนะ): {winrate:.2f}%")
 
-
-plt.figure(figsize=(10, 6))
-plt.plot(equity_curve, color='red' if current_capital < initial_capital else 'green', linewidth=2)
-plt.title(f'Win Rate: {win_rate:.2f}%', fontsize=14)
-plt.grid(True, linestyle=':', alpha=0.7)
+plt.plot(bob)
+plt.grid(True, linestyle=':')
 plt.show()
